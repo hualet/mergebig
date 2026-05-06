@@ -204,7 +204,15 @@ class TUI:
         items = self._get_flat_items()
         if not items:
             return
-        self.cursor = max(0, min(len(items) - 1, self.cursor + delta))
+        new_cursor = max(0, min(len(items) - 1, self.cursor + delta))
+
+        # 如果落到了分隔线上，继续向同一方向移动直到文件项
+        if items[new_cursor][0] == "sep":
+            direction = 1 if delta >= 0 else -1
+            new_cursor += direction
+            new_cursor = max(0, min(len(items) - 1, new_cursor))
+
+        self.cursor = new_cursor
 
         # 调整滚动
         h = self.stdscr.getmaxyx()[0]
