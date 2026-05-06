@@ -112,6 +112,15 @@ class TestScanLargeFiles:
         assert calls[-1]["files_checked"] == 1
         assert calls[-1]["large_files_found"] == 1
 
+    def test_skips_symlinks(self, tmp_path: Path):
+        target = tmp_path / "target.bin"
+        symlink = tmp_path / "link.bin"
+        target.write_bytes(b"x" * 100)
+        symlink.symlink_to(target)
+        results = scan_large_files(tmp_path, 50, set())
+        assert len(results) == 1
+        assert results[0].path == target
+
 
 class TestFindDuplicatesByHash:
     def test_finds_duplicates(self, tmp_path: Path):

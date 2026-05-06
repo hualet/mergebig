@@ -88,6 +88,8 @@ def scan_large_files(
             filepath = Path(root) / filename
             stats["files_checked"] += 1
             try:
+                if filepath.is_symlink():
+                    continue
                 size = filepath.stat().st_size
                 if size >= min_size:
                     results.append(FileInfo(filepath))
