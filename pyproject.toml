@@ -33,6 +33,7 @@ mergebig = "mergebig.__main__:main"
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "ruff>=0.15",
 ]
 
 [build-system]
@@ -41,6 +42,25 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["mergebig"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "W",   # pycodestyle warnings
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

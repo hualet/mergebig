@@ -1,9 +1,8 @@
 """核心逻辑：合并、删除等操作"""
 
 import os
-from pathlib import Path
 from typing import List
-from .scanner import FileInfo, format_size
+from .scanner import FileInfo
 
 
 def delete_files(files: List[FileInfo]) -> tuple:
@@ -21,20 +20,20 @@ def delete_files(files: List[FileInfo]) -> tuple:
 
 def hardlink_files(file_groups: List[List[FileInfo]], keep_first: bool = True) -> tuple:
     """将重复文件用 hardlink 合并，返回 (成功组数, 失败列表)
-    
+
     每组保留第一个文件作为 master，其他文件删除后重新创建 hardlink
     """
     success_groups = 0
     failed = []
-    
+
     for group in file_groups:
         if len(group) < 2:
             continue
-        
+
         # 按路径排序，确保确定性
         group_sorted = sorted(group, key=lambda f: str(f.path))
         master = group_sorted[0]
-        
+
         group_success = True
         for f in group_sorted[1:]:
             try:
@@ -43,17 +42,17 @@ def hardlink_files(file_groups: List[List[FileInfo]], keep_first: bool = True) -
                     failed.append((f, "与 master 不在同一文件系统，无法 hardlink"))
                     group_success = False
                     continue
-                
+
                 # 删除目标文件，然后创建 hardlink
                 f.path.unlink()
                 os.link(master.path, f.path)
             except (OSError, PermissionError) as e:
                 failed.append((f, str(e)))
                 group_success = False
-        
+
         if group_success:
             success_groups += 1
-    
+
     return success_groups, failed
 
 

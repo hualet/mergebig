@@ -9,6 +9,15 @@
 - Python 3.8+（仅使用标准库，零第三方依赖）
 - TUI 基于 `curses` 标准库实现
 - 依赖管理：`uv venv` + `pyproject.toml`
+- 代码规范：`ruff`（lint + format）
+
+## 代码规范
+
+- 缩进使用 4 个空格，禁止 tab
+- 行长度限制 100 字符
+- 引号使用双引号
+- 换行符使用 LF
+- 提交前运行：`ruff check mergebig/ && ruff format mergebig/`
 
 ## 代码规范
 
