@@ -17,14 +17,14 @@
 - 行长度限制 100 字符
 - 引号使用双引号
 - 换行符使用 LF
-- 提交前运行：`ruff check mergebig/ && ruff format mergebig/`
-
-## 代码规范
-
 - 所有路径操作使用 `pathlib.Path`
 - 字符串格式化使用 f-string
 - 类型注解可选但鼓励使用
 - 异常处理要具体（`OSError`, `PermissionError` 等），不裸 `except`
+- 提交前运行：
+  ```bash
+  ruff check mergebig/ && ruff format mergebig/ && pytest tests/ -v
+  ```
 
 ## 文件结构
 
@@ -62,5 +62,13 @@ mergebig/
 
 ## 测试
 
-- 在 `/tmp` 下创建测试目录和文件进行验证
-- 测试场景：空目录、无大文件、有重复文件、有同名文件、跨目录 hardlink
+- **新增或修改功能时必须添加对应的单元测试**，测试文件放在 `tests/` 目录下
+- 测试使用 `pytest`，通过 `tmp_path` fixture 创建临时文件，不依赖真实文件系统
+- 提交前必须运行全部测试并确保通过：
+  ```bash
+  pytest tests/ -v
+  ```
+- 核心测试覆盖：
+  - `test_cli.py` — 命令行参数解析、大小单位转换
+  - `test_scanner.py` — 文件扫描、hash 计算、重复检测（按 hash / 按名字）
+  - `test_core.py` — 文件删除、hardlink 合并、空间计算
