@@ -1,6 +1,8 @@
 """文件扫描与 hash 计算"""
 
 import os
+import stat
+import concurrent.futures
 import hashlib
 from pathlib import Path
 from collections import defaultdict
@@ -44,11 +46,13 @@ def full_hash(filepath: Path, chunk_size: int = 65536) -> Optional[str]:
 class FileInfo:
     """文件信息对象"""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, size: Optional[int] = None):
         self.path = path
         self.name = path.name
-        stat = path.stat()
-        self.size = stat.st_size
+        if size is not None:
+            self.size = size
+        else:
+            self.size = path.stat().st_size
         self.quick_hash: Optional[str] = None
         self.full_hash: Optional[str] = None
 
@@ -59,7 +63,7 @@ class FileInfo:
 def scan_large_files(
     root_dir: Path, min_size: int, skip_dirs: set, progress_callback=None
 ) -> List[FileInfo]:
-    """扫描目录查找大文件
+    """扫描目录查找大文件（并行处理）
 
     progress_callback: 可选的回调函数，接收 dict 参数：
         {
@@ -77,28 +81,35 @@ def scan_large_files(
         "current_dir": "",
     }
 
-    for root, dirs, files in os.walk(root_dir):
-        # 跳过指定目录
-        dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith(".")]
+    def _check(filepath: Path) -> Optional[FileInfo]:
+        """检查单个文件是否满足大文件条件"""
+        try:
+            st = filepath.lstat()
+            if stat.S_ISLNK(st.st_mode):
+                return None
+            if st.st_size >= min_size:
+                return FileInfo(filepath, st.st_size)
+        except (OSError, IOError):
+            return None
+        return None
 
-        stats["dirs_scanned"] += 1
-        stats["current_dir"] = root
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for root, dirs, files in os.walk(root_dir):
+            # 跳过指定目录
+            dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith(".")]
 
-        for filename in files:
-            filepath = Path(root) / filename
-            stats["files_checked"] += 1
-            try:
-                if filepath.is_symlink():
-                    continue
-                size = filepath.stat().st_size
-                if size >= min_size:
-                    results.append(FileInfo(filepath))
+            stats["dirs_scanned"] += 1
+            stats["current_dir"] = root
+
+            filepaths = [Path(root) / f for f in files]
+            for info in executor.map(_check, filepaths):
+                stats["files_checked"] += 1
+                if info is not None:
+                    results.append(info)
                     stats["large_files_found"] += 1
-            except (OSError, IOError):
-                continue
 
-        if progress_callback:
-            progress_callback(stats.copy())
+            if progress_callback:
+                progress_callback(stats.copy())
 
     results.sort(key=lambda f: f.size, reverse=True)
     return results
