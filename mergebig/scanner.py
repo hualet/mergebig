@@ -100,6 +100,7 @@ def scan_large_files(
         if progress_callback:
             progress_callback(stats.copy())
 
+    results.sort(key=lambda f: f.size, reverse=True)
     return results
 
 
