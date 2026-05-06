@@ -53,6 +53,9 @@ class TUI:
         self._scan()
         self.scanning = False
 
+        # 进入交互主界面后恢复阻塞输入，避免无输入时持续刷新
+        stdscr.timeout(-1)
+
         # 阶段2: 交互主界面
         while True:
             self._draw()
