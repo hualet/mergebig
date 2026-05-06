@@ -25,6 +25,7 @@ class TUI:
         self.mode_idx = 0
         self.files: List[FileInfo] = []
         self.groups: List[List[FileInfo]] = []
+        self._group_cache: dict = {}
         self.selected: set = set()
         self.cursor = 0
         self.scroll_top = 0
@@ -115,6 +116,8 @@ class TUI:
         self._draw_scan_progress()
 
         self.scanning = False
+        # 预先计算所有模式的分组，避免切换标签页时重复计算导致卡顿
+        self._precompute_all_groups()
         self._refresh_groups()
 
     def _draw_scan_progress(self):
@@ -154,21 +157,18 @@ class TUI:
 
         stdscr.refresh()
 
+    def _precompute_all_groups(self):
+        """预先计算所有三种模式的分组数据，避免切换标签页时卡顿"""
+        self._group_cache = {
+            "large": [[f] for f in self.files],
+            "dup_hash": find_duplicates_by_hash(self.files),
+            "dup_name": find_duplicates_by_name(self.files),
+        }
+
     def _refresh_groups(self):
-        """根据当前模式刷新分组"""
+        """根据当前模式刷新分组（从预计算缓存读取）"""
         mode = self.MODES[self.mode_idx][0]
-        if mode == "large":
-            self.groups = [[f] for f in self.files]
-        elif mode == "dup_hash":
-            self.message = "正在计算 hash..."
-            self.message_color = 3
-            self._draw()
-            self.groups = find_duplicates_by_hash(self.files)
-        elif mode == "dup_name":
-            self.message = "正在分析同名文件..."
-            self.message_color = 3
-            self._draw()
-            self.groups = find_duplicates_by_name(self.files)
+        self.groups = self._group_cache.get(mode, [])
 
         self.selected.clear()
         self.cursor = 0
